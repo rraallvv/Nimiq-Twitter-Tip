@@ -3,19 +3,14 @@ log:
   level: "info"
 rpc:
   host: localhost
-  port: 9342
-  user: crownrpc
-  pass: CHANGE_ME
+  port: 8648
 coin:
-  withdrawal_fee: 1
-  min_withdraw: 5
+  min_withdraw: 1
   min_confirmations: 3
-  min_tip: 0.01
-  short_name: CRW
-  full_name: Crown
-twitter:
-  username: CrownPayTip
-  consumer_key: CHANGE_ME
-  consumer_secret: CHANGE_ME
-  access_token: CHANGE_ME
-  access_token_secret: CHANGE_ME
+  min_tip: 1
+  short_name: NIM
+  full_name: Nimiq
+  miner_fee: 0.00140
+  address_pattern: "\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}"
+  random_prefix: "\U0001F916 "
+  random_length: 3
