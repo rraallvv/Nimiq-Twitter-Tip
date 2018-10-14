@@ -1,38 +1,40 @@
-Twitter-Tip is an open-source node.js Twitter bot for tipping with altcoins.
+Nimiq-Twitter-Tip is an open-source node.js Twitter bot for tipping with altcoins. It's integrated with the Nimiq blockchain but it can be easily modified for other altcoins. 
 
 # Instalation
-To install Twitter-Tip simply clone this repo and install dependencies:
-```bash
-git clone https://github.com/rraallvv/Twitter-Tip
-cd Twitter-Tip
-npm install
+To install Nimiq-Twitter-Tip simply clone this repo and install the dependencies:
 ```
+$ git clone https://github.com/rraallvv/Nimiq-Twitter-Tip
+$ cd Nimiq-Twitter-Tip
+$ npm install
+```
+
+# Configuration file
 After installation proceed to the configuration file `twitter.yml`.
 
 ## log
 Logging settings.
-* **file** - file to log to. Set to `false` to disable logging to file.
-* **level** - debug level.
+* **file** - File to log to. Set to `false` to disable logging to file.
+* **level** - Debug level. Alowed values are `'error'`, `'warn'`, `'info'`, `'verbose'`, `'debug'`, and `'silly'`. Defaul value is `'info'`.
 
 ## rpc
 JSON RPC API connection info.
-* **host** - Daemon hostname(127.0.0.1 if hosted on the same machine)
-* **port** - Daemon RPC port (by default 9341 for Crown)
+* **host** - Daemon hostname (`localhost` if hosted on the same machine)
+* **port** - Daemon RPC port (by default `8648` for Nimiq)
 
 ## coin
 Basic coin settings.
-* **min_withdraw** - minimum amount of coins to withdraw
-* **min_confirmations** - minimum amount of confirmations needed to tip/withdraw coins
-* **min_tip** - minimum amount of coins to tip
-* **short_name** - short coin's name (eg. `CRW`)
-* **full_name** - full coin's name (eg. `Crown`)
-* **miner_fee** - fee charged on transactions to cover up the miner fee.
-* **address_pattern** - the regex patter to look for the address when parsing the tweet
-* **random_prefix** - prefix to add to random stamp (for adding some randomnes to the tweet) 
-* **random_length** - number of decimals of the random number in the stamp
+* **min_withdraw** - Minimum amount of coins to withdraw
+* **min_confirmations** - Minimum amount of confirmations for the current balance needed to tip/withdraw coins
+* **min_tip** - Minimum amount of coins to tip
+* **short_name** - Short name for the coin (eg. `NIM`)
+* **full_name** - Full name for the coin (eg. `Nimiq`)
+* **miner_fee** - Fee charged on transactions to cover up the miner fees.
+* **address_pattern** - The regex pattern to match in tweet when searching for the address to send/withdraw
+* **random_prefix** - Prefix added to the random stamp (used to fool twitter into thinking each tweet is different) 
+* **random_length** - Number of decimals of the random number in the random stamp
 
-Add the following enviromentariables with their appropriate values to `~/.bashrc` and run `source ~/.bashrc`:
-
+# Environment variables
+The following environment variables are needed for Nimiq-Twitter-Tip to work. In Linux those are added to `~/.bashrc`.
 ```
 # Twitter app
 export TWITTER_USERNAME=NimiqB
@@ -50,11 +52,10 @@ export DATABASE_PASS=<database password>
 ```
 
 # How does it work?
-Every Twitter username has it's own account in associate to an address. When a tip is sent or withdrawn, the bot checks if the user is has an adddress or creates one if there isn't one already created. Then it moves the amount of coins from one account to another, or to some address specified for withdrawing.
+Nimiq-Twitter-Tip creates a Nimiq address for every Twitter user. Then it moves the amount of coins from one account to the other, or to some external address for withdrawals.
 
 # How to run it?
-Before running the bot, you have to be running your coin daemon with JSON-RPC API enabled. To enable, add this to your coin daemon configuration file (eg. `~/nimiq-core/settings.conf`):
-
+Before running the bot, you have to be running a node in the Nimiq blockchain with JSON-RPC API enabled. JSON-RPC can be enabled using this configuration file with the node (e.g. `~/nimiq-core/settings.conf`):
 ```
 {
   protocol: "dumb",
@@ -67,22 +68,22 @@ Before running the bot, you have to be running your coin daemon with JSON-RPC AP
   }
 }
 ```
-To start the rpc server using the configuration file run `clients/nodejs/index.js --config=settings.conf`
+To start the rpc server using this configuration file run `node clients/nodejs/index.js --config=settings.conf` from the directory where you have the Nimiq core (e.g. `~/nimiq-core/`)
 
-To run the tip bot run `node twitter` or `npm start`.
+To run Nimiq-Twitter-Tip run `node twitter` or `npm start` in the directory where you cloned this repository.
 
 ## Commands
 
-Instructions are executed by messaging the bot on Twitter with one of the following command preceded by an excamation mark.
+Instructions are executed by messaging the bot on Twitter with one of the following command preceded by an exclamation mark.
 
 | **Command** | **Arguments**     | **Description**
 |-------------|-------------------|--------------------------------------------------------------------
-| `address`   |                      | displays address where you can send your funds to the tip bot
-| `balance`   |                      | displays your current wallet balance
-| `help`      |                      | displays configured help message (by default similiar to this one)
-| `send`      | `<address> <amount>` | sends the specified amount of coins to the specified address
-| `tip`       | `<nickname> <amount>`    | sends the specified amount of coins to the specified nickname
-| `withdraw`  | `<address>`          | withdraws your whole wallet balance to specified address
+| `address`   |                      | Displays address where you can send your funds to the tip bot
+| `balance`   |                      | Displays your current wallet balance
+| `help`      |                      | Displays configured help message (by default similiar to this one)
+| `send`      | `<address> <amount>` | Sends the specified amount of coins to the specified address
+| `tip`       | `<nickname> <amount>`    | Sends the specified amount of coins to the specified nickname
+| `withdraw`  | `<address>`          | Withdraws your whole wallet balance to specified address
 
 ## Examples
 
@@ -94,9 +95,9 @@ Instructions are executed by messaging the bot on Twitter with one of the follow
 
 **@NimiqB** !withdraw
 
-## You have already sent this Tweet
+## "You have already sent this Tweet"
 
-If Twitter shows the message **"You have already sent this Tweet"** simply add some random caracters at the end. In the examples below the caracters **"fwrh34iuhf"** after the required parameters are simply ignored. 
+If Twitter shows the message **"You have already sent this Tweet"** simply add some random caracters at the end of the tweet like in the examples below. In the examples the caracters **"fwrh34iuhf"** put after the required parameters are simply ignored by the bot.
 
 **@NimiqB** !balance fwrh34iuhf
 
