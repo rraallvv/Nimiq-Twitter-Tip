@@ -10,11 +10,7 @@ async function main() {
 	// load settings
 	var settings = yaml.load(fs.readFileSync("./twitter.yml", "utf-8"));
 
-	function amountToString(amount) {
-		if (amount % 1 != 0) return amount.toFixed(5);
-		return amount.toString();
-	}
-
+	//Source: https://github.com/nimiq-network/core/blob/master/clients/nodejs/remote.js#L47
 	function jsonRpcFetch(method, ...params) {
 		return new Promise((resolve, fail) => {
 			while (
@@ -89,6 +85,11 @@ async function main() {
 		});
 	}
 
+	function amountToString(amount) {
+		if (amount % 1 != 0) return amount.toFixed(5);
+		return amount.toString();
+	}
+
 	async function getAddress(user) {
 		var address = await keyv.get(user);
 		if (!address) {
@@ -99,12 +100,12 @@ async function main() {
 		return address;
 	}
 
-	async function getBalance(address, atBlock) {
+	async function getBalance(address, confirmations) {
 		var balance = await jsonRpcFetch("getBalance", address);
-		if (atBlock && atBlock !== "latest") {
+		if (confirmations && confirmations !== "latest") {
 			var blockNumber = await jsonRpcFetch("blockNumber");
-			atBlock = blockNumber - atBlock;
-			for (var i = blockNumber; i > atBlock; i--) {
+			confirmations = blockNumber - confirmations;
+			for (var i = blockNumber; i > confirmations; i--) {
 				var block = await jsonRpcFetch("getBlockByNumber", i, true);
 				for (var j = 0, l = block.transactions.length; j < l; j++) {
 					var transaction = block.transactions[j];
