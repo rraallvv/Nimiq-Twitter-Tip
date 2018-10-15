@@ -237,11 +237,15 @@ async function main() {
 								amountToString(balance) +
 								" $" +
 								settings.coin.short_name +
-								". ( Unconfirmed: " +
-								amountToString(unconfirmed_balance) +
-								" $" +
-								settings.coin.short_name +
-								" ) [" +
+								"." +
+								(unconfirmed_balance > 0
+									? " ( Unconfirmed: " +
+									  amountToString(unconfirmed_balance) +
+									  " $" +
+									  settings.coin.short_name +
+									  " )"
+									: "") +
+								" [" +
 								settings.coin.random_prefix +
 								random +
 								"]",
