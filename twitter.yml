@@ -10,6 +10,7 @@ coin:
   min_tip: 1
   short_name: NIM
   full_name: Nimiq
+  inv_precision: 1e5
   miner_fee: 0.00140
   address_pattern: "\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}[ _\\-\\+]?\\S{4}"
   random_prefix: "\U0001F916 "

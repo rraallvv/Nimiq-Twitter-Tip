@@ -26,8 +26,9 @@ Basic coin settings.
 * **min_withdraw** - Minimum amount of coins to withdraw
 * **min_confirmations** - Minimum amount of confirmations for the current balance needed to tip/withdraw coins
 * **min_tip** - Minimum amount of coins to tip
-* **short_name** - Short name for the coin (eg. `NIM`)
-* **full_name** - Full name for the coin (eg. `Nimiq`)
+* **short_name** - Short name for the coin (e.g. `NIM`)
+* **full_name** - Full name for the coin (e.g. `Nimiq`)
+* **inv_precision** - Inverse of the smalest amount (e.g. 1/0.00001 or 1e5 for Nimiq)
 * **miner_fee** - Fee charged on transactions to cover up the miner fees.
 * **address_pattern** - The regex pattern to match in tweet when searching for the address to send/withdraw
 * **random_prefix** - Prefix added to the random stamp (used to fool twitter into thinking each tweet is different) 

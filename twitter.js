@@ -118,7 +118,7 @@ async function main() {
 				}
 			}
 		}
-		return balance / 1e5;
+		return balance / settings.coin.inv_precision;
 	}
 
 	var keyv = new Keyv(
@@ -149,7 +149,7 @@ async function main() {
 	}
 
 	// connect to coin daemon
-	winston.info("Connecting to " + settings.coin.full_name + "d...");
+	winston.info("Connecting to " + settings.coin.full_name + " RPC API...");
 
 	try {
 		var balance = await getBalance(
@@ -401,7 +401,7 @@ async function main() {
 				}
 
 				// check amount is larger than minimum tip amount
-				// we charge twice the miner fee and send a half with the tip for withdrawal
+				// charge twice the miner fee and send a half with the tip for withdrawal
 				if (amount < settings.coin.min_tip + 2 * settings.coin.miner_fee) {
 					var short =
 						settings.coin.min_tip + 2 * settings.coin.miner_fee - amount;
@@ -465,14 +465,14 @@ async function main() {
 				}
 
 				try {
-					// we charge twice the miner fee and send a half with the tip for withdrawal
+					// charge twice the miner fee and send a half with the tip for withdrawal
 					if (balance >= amount + 2 * settings.coin.miner_fee) {
 						toAddress = await getAddress(to);
 						await jsonRpcFetch("sendTransaction", {
 							from: fromAddress,
 							to: toAddress,
-							value: (amount + settings.coin.miner_fee) * 1e5, // we send the withdrawal fee with the tip
-							fee: settings.coin.miner_fee * 1e5
+							value: (amount + settings.coin.miner_fee) * settings.coin.inv_precision, // send the withdrawal fee with the tip
+							fee: settings.coin.miner_fee * settings.coin.inv_precision
 						});
 						client.post(
 							"statuses/update",
@@ -716,8 +716,8 @@ async function main() {
 					await jsonRpcFetch("sendTransaction", {
 						from: fromAddress,
 						to: toAddress,
-						value: amount * 1e5,
-						fee: settings.coin.miner_fee * 1e5
+						value: amount * settings.coin.inv_precision,
+						fee: settings.coin.miner_fee * settings.coin.inv_precision
 					});
 					client.post(
 						"statuses/update",
@@ -881,8 +881,8 @@ async function main() {
 							await jsonRpcFetch("sendTransaction", {
 								from: fromAddress,
 								to: toAddress,
-								value: amount * 1e5,
-								fee: settings.coin.miner_fee * 1e5
+								value: amount * settings.coin.inv_precision,
+								fee: settings.coin.miner_fee * settings.coin.inv_precision
 							});
 							client.post(
 								"statuses/update",
