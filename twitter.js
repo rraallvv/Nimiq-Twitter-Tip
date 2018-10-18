@@ -6,6 +6,7 @@ async function main() {
 	var Keyv = require("keyv");
 	var http = require("http");
 	var btoa = require("btoa");
+	var nodemailer = require("nodemailer");
 
 	// load settings
 	var settings = yaml.load(fs.readFileSync("./twitter.yml", "utf-8"));
@@ -121,6 +122,46 @@ async function main() {
 		return balance / settings.coin.inv_precision;
 	}
 
+	function tweetResponse(status, tweetid, completion) {
+		if (!completion) {
+			completion = function(error, tweet, response) {
+				return;
+			};
+		}
+		var random = Math.random()
+			.toString()
+			.slice(0, settings.coin.random_length + 2);
+		client.post(
+			"statuses/update",
+			{
+				status: status + " [" + settings.coin.random_prefix + random + "]",
+				in_reply_to_status_id: tweetid
+			},
+			completion
+		);
+		transporter.sendMail(
+			{
+				from: process.env.EMAIL_ADDRESS,
+				to: process.env.EMAIL_NOTIFICATION_ADDRESS,
+				subject: "Twitter Tip Bot",
+				text: status
+			},
+			function(error, info) {
+				if (error) {
+					winston.error("Could not send email notification", error);
+				}
+			}
+		);
+	}
+
+	var transporter = nodemailer.createTransport(
+		"smtps://" +
+			encodeURI(process.env.EMAIL_ADDRESS) +
+			":" +
+			encodeURI(process.env.EMAIL_PASSWORD) +
+			"@smtp.gmail.com"
+	);
+
 	var keyv = new Keyv(
 		`mysql://${process.env.DATABASE_USER}:${encodeURI(
 			process.env.DATABASE_PASS
@@ -187,9 +228,6 @@ async function main() {
 		var message = tweet.text;
 		// if message is from username ignore
 		if (from == process.env.TWITTER_USERNAME.toLowerCase()) return;
-		var random = Math.random()
-			.toString()
-			.slice(0, settings.coin.random_length + 2);
 		if (message.indexOf(process.env.TWITTER_USERNAME + " ") != -1) {
 			var message = message.substr(
 				message.indexOf(process.env.TWITTER_USERNAME + " ") +
@@ -227,52 +265,32 @@ async function main() {
 					unconfirmed_balance -= balance;
 
 					winston.info(from + "'s Balance is " + amountToString(balance));
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								", Your current balance is " +
-								amountToString(balance) +
-								" $" +
-								settings.coin.short_name +
-								"." +
-								(unconfirmed_balance > 0
-									? " ( Unconfirmed: " +
-									  amountToString(unconfirmed_balance) +
-									  " $" +
-									  settings.coin.short_name +
-									  " )"
-									: "") +
-								" [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
-						function(error, tweet, response) {
-							return;
-						}
+					tweetResponse(
+						"@" +
+							from +
+							", Your current balance is " +
+							amountToString(balance) +
+							" $" +
+							settings.coin.short_name +
+							"." +
+							(unconfirmed_balance > 0
+								? " ( Unconfirmed: " +
+								  amountToString(unconfirmed_balance) +
+								  " $" +
+								  settings.coin.short_name +
+								  " )"
+								: ""),
+						tweetid
 					);
 				} catch (err) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"Could not get balance for @" +
-								from +
-								" [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
-						function(error, tweet, response) {
-							winston.error("Error in !balance command", err);
-							return;
-						}
-					);
+					tweetResponse("Could not get balance for @" + from, tweetid, function(
+						error,
+						tweet,
+						response
+					) {
+						winston.error("Error in !balance command", err);
+						return;
+					});
 				}
 				break;
 
@@ -280,38 +298,20 @@ async function main() {
 				winston.debug("Requesting address for %s", from);
 				try {
 					var address = await getAddress(from);
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								", Your deposit address is " +
-								address +
-								" [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" + from + ", Your deposit address is " + address,
+						tweetid,
 						function(error, tweet, response) {
 							winston.info("Sending address to " + from);
 							return;
 						}
 					);
 				} catch (err) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" I'm sorry, something went wrong while getting the address. [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" +
+							from +
+							" I'm sorry, something went wrong while getting the address.",
+						tweetid,
 						function(error, tweet, response) {
 							winston.error(
 								"Something went wrong while getting " + from + "'s address.",
@@ -327,23 +327,13 @@ async function main() {
 				winston.debug("Processing tip for %s", from);
 				var match = message.match(/^.?tip (\S+) ([\d\.]+)/);
 				if (match === null || match.length < 3) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" Usage: <@" +
-								process.env.TWITTER_USERNAME +
-								" !tip [nickname] [amount]> [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
-						function(error, tweet, response) {
-							return;
-						}
+					tweetResponse(
+						"@" +
+							from +
+							" Usage: <@" +
+							process.env.TWITTER_USERNAME +
+							" !tip [nickname] [amount]>",
+						tweetid
 					);
 					break;
 				}
@@ -356,20 +346,13 @@ async function main() {
 
 				// check amount being sent is valid
 				if (!amount) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								", " +
-								amountToString(amount) +
-								" is an invalid amount [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" +
+							from +
+							", " +
+							amountToString(amount) +
+							" is an invalid amount",
+						tweetid,
 						function(error, tweet, response) {
 							winston.warn(from + " tried to send an invalid amount ");
 							return;
@@ -380,18 +363,9 @@ async function main() {
 
 				// check the user isn't tipping themselves.
 				if (to == from) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" I'm sorry, You can't tip yourself ! [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" + from + " I'm sorry, You can't tip yourself !",
+						tweetid,
 						function(error, tweet, response) {
 							winston.warn(from + " tried to send to themselves.");
 							return;
@@ -405,28 +379,21 @@ async function main() {
 				if (amount < settings.coin.min_tip + 2 * settings.coin.miner_fee) {
 					var short =
 						settings.coin.min_tip + 2 * settings.coin.miner_fee - amount;
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" I'm sorry, your tip to @" +
-								to +
-								" (" +
-								amountToString(amount) +
-								" $" +
-								settings.coin.short_name +
-								") is smaller that the minimum amount allowed (you are short " +
-								amountToString(short) +
-								" $" +
-								settings.coin.short_name +
-								") [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" +
+							from +
+							" I'm sorry, your tip to @" +
+							to +
+							" (" +
+							amountToString(amount) +
+							" $" +
+							settings.coin.short_name +
+							") is smaller that the minimum amount allowed (you are short " +
+							amountToString(short) +
+							" $" +
+							settings.coin.short_name +
+							")",
+						tweetid,
 						function(error, tweet, response) {
 							winston.warn(from + " tried to send too small of a tip.");
 							return;
@@ -444,23 +411,14 @@ async function main() {
 						settings.coin.min_confirmations
 					);
 				} catch (err) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"Could not get balance for @" +
-								from +
-								" [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
-						function(error, tweet, response) {
-							winston.error("Error while checking balance for " + from, err);
-							return;
-						}
-					);
+					tweetResponse("Could not get balance for @" + from, tweetid, function(
+						error,
+						tweet,
+						response
+					) {
+						winston.error("Error while checking balance for " + from, err);
+						return;
+					});
 					break;
 				}
 
@@ -471,84 +429,66 @@ async function main() {
 						await jsonRpcFetch("sendTransaction", {
 							from: fromAddress,
 							to: toAddress,
-							value: (amount + settings.coin.miner_fee) * settings.coin.inv_precision, // send the withdrawal fee with the tip
+							value:
+								(amount + settings.coin.miner_fee) *
+								settings.coin.inv_precision, // send the withdrawal fee with the tip
 							fee: settings.coin.miner_fee * settings.coin.inv_precision
 						});
-						client.post(
-							"statuses/update",
-							{
-								status:
-									"@" +
-									from +
-									" tipped @" +
-									to +
-									" " +
-									amountToString(amount) +
-									" $" +
-									settings.coin.short_name +
-									" Tweet @" +
-									process.env.TWITTER_USERNAME +
-									" !help to claim your tip ! [" +
-									settings.coin.random_prefix +
-									random +
-									"]",
-								in_reply_to_status_id: tweetid
-							},
+						tweetResponse(
+							"@" +
+								from +
+								" tipped @" +
+								to +
+								" " +
+								amountToString(amount) +
+								" $" +
+								settings.coin.short_name +
+								" Tweet @" +
+								process.env.TWITTER_USERNAME +
+								" !help to claim your tip !",
+							tweetid,
 							function(error, tweet, response) {
 								winston.info(
-									"%s tipped %s %d %s",
-									from,
-									to,
-									amountToString(amount),
-									settings.coin.short_name
+									from +
+										" tipped " +
+										to +
+										" " +
+										amountToString(amount) +
+										" " +
+										settings.coin.short_name
 								);
+								return;
 							}
 						);
 					} else {
 						var short = amount + 2 * settings.coin.miner_fee - balance;
-						client.post(
-							"statuses/update",
-							{
-								status:
-									"@" +
-									from +
-									" I'm sorry, you dont have enough funds (you are short " +
-									amountToString(short) +
-									" $" +
-									settings.coin.short_name +
-									") [" +
-									settings.coin.random_prefix +
-									random +
-									"]",
-								in_reply_to_status_id: tweetid
-							},
+						tweetResponse(
+							"@" +
+								from +
+								" I'm sorry, you dont have enough funds (you are short " +
+								amountToString(short) +
+								" $" +
+								settings.coin.short_name +
+								")",
+							tweetid,
 							function(error, tweet, response) {
 								winston.error(
-									"%s tried to tip %s %d, but has only %d",
-									from,
-									to,
-									amountToString(amount),
-									balance
+									from +
+										" tried to tip " +
+										to +
+										" " +
+										amountToString(amount) +
+										", but has only " +
+										balance
 								);
 								return;
 							}
 						);
 					}
 				} catch (err) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"Could not send coins from @" +
-								from +
-								" to @" +
-								to +
-								" [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"Could not send coins from @" + from + " to @" + to,
+						tweetid,
 						function(error, tweet, response) {
 							winston.error(
 								"Error while moving coins from " + from + " to " + to,
@@ -566,25 +506,15 @@ async function main() {
 					new RegExp(`^.?withdraw (${settings.coin.address_pattern})`)
 				);
 				if (match === null) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" Usage: <@" +
-								process.env.TWITTER_USERNAME +
-								" !withdraw [" +
-								settings.coin.full_name +
-								" address]> [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
-						function(error, tweet, response) {
-							return;
-						}
+					tweetResponse(
+						"@" +
+							from +
+							" Usage: <@" +
+							process.env.TWITTER_USERNAME +
+							" !withdraw [" +
+							settings.coin.full_name +
+							" address]>",
+						tweetid
 					);
 					break;
 				}
@@ -595,20 +525,13 @@ async function main() {
 				try {
 					await jsonRpcFetch("getAccount", toAddress);
 				} catch (err) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" I'm sorry, " +
-								toAddress +
-								" is invalid or something went wrong with the address validation. [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" +
+							from +
+							" I'm sorry, " +
+							toAddress +
+							" is invalid or something went wrong with the address validation.",
+						tweetid,
 						function(error, tweet, response) {
 							winston.warn("%s tried to withdraw to an invalid address", from);
 							return;
@@ -624,21 +547,9 @@ async function main() {
 						settings.coin.min_confirmations
 					);
 				} catch (err) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								", I'm sorry I could not get your balance [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
-						function(error, tweet, response) {
-							return;
-						}
+					tweetResponse(
+						"@" + from + ", I'm sorry I could not get your balance",
+						tweetid
 					);
 					break;
 				}
@@ -646,32 +557,25 @@ async function main() {
 				if (balance < settings.coin.min_withdraw + settings.coin.miner_fee) {
 					var short =
 						settings.coin.min_withdraw + settings.coin.miner_fee - balance;
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" I'm sorry, the minimum withdrawal amount is " +
-								amountToString(settings.coin.min_withdraw) +
-								" $" +
-								settings.coin.short_name +
-								" you are short " +
-								amountToString(short) +
-								" $" +
-								settings.coin.short_name +
-								" [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" +
+							from +
+							" I'm sorry, the minimum withdrawal amount is " +
+							amountToString(settings.coin.min_withdraw) +
+							" $" +
+							settings.coin.short_name +
+							" you are short " +
+							amountToString(short) +
+							" $" +
+							settings.coin.short_name,
+						tweetid,
 						function(error, tweet, response) {
 							winston.warn(
-								"%s tried to withdraw %d, but min is set to %d",
-								from,
-								balance,
-								settings.coin.min_withdraw
+								from +
+									" tried to withdraw " +
+									balance +
+									", but min is set to " +
+									settings.coin.min_withdraw
 							);
 							return;
 						}
@@ -682,28 +586,22 @@ async function main() {
 				if (balance < settings.coin.min_withdraw + settings.coin.miner_fee) {
 					var short =
 						settings.coin.min_withdraw + settings.coin.miner_fee - balance;
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" I'm sorry, you dont have enough funds to cover the miner fee (you are short " +
-								amountToString(short) +
-								" $" +
-								settings.coin.short_name +
-								") [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" +
+							from +
+							" I'm sorry, you dont have enough funds to cover the miner fee (you are short " +
+							amountToString(short) +
+							" $" +
+							settings.coin.short_name +
+							")",
+						tweetid,
 						function(error, tweet, response) {
 							winston.warn(
-								"%s tried to withdraw %d, but funds don't cover the miner fee %d",
-								from,
-								balance,
-								settings.coin.miner_fee
+								from +
+									" tried to withdraw " +
+									balance +
+									", but funds don't cover the miner fee " +
+									settings.coin.miner_fee
 							);
 							return;
 						}
@@ -719,20 +617,16 @@ async function main() {
 						value: amount * settings.coin.inv_precision,
 						fee: settings.coin.miner_fee * settings.coin.inv_precision
 					});
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								": " +
-								amountToString(amount) +
-								" $" +
-								settings.coin.short_name +
-								" has been withdrawn from your account to " +
-								toAddress,
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" +
+							from +
+							": " +
+							amountToString(amount) +
+							" $" +
+							settings.coin.short_name +
+							" has been withdrawn from your account to " +
+							toAddress,
+						tweetid,
 						function(error, tweet, response) {
 							winston.info(
 								"Sending " +
@@ -744,23 +638,13 @@ async function main() {
 									" for @" +
 									from
 							);
+							return;
 						}
 					);
 				} catch (err) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"Could not send coins from @" +
-								from +
-								" to " +
-								toAddress +
-								" [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"Could not send coins from @" + from + " to " + toAddress,
+						tweetid,
 						function(error, tweet, response) {
 							winston.error("Error in !withdraw command", err);
 							return;
@@ -775,25 +659,15 @@ async function main() {
 					new RegExp(`^.?send (${settings.coin.address_pattern}) ([\\d\\.]+)`)
 				);
 				if (match === null) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" Usage: <@" +
-								process.env.TWITTER_USERNAME +
-								" !send [" +
-								settings.coin.full_name +
-								" address] [amount]> [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
-						function(error, tweet, response) {
-							return;
-						}
+					tweetResponse(
+						"@" +
+							from +
+							" Usage: <@" +
+							process.env.TWITTER_USERNAME +
+							" !send [" +
+							settings.coin.full_name +
+							" address] [amount]>",
+						tweetid
 					);
 					break;
 				}
@@ -803,23 +677,9 @@ async function main() {
 					balance;
 
 				if (!amount) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								", " +
-								amount +
-								" is an invalid amount [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
-						function(error, tweet, response) {
-							return;
-						}
+					tweetResponse(
+						"@" + from + ", " + amount + " is an invalid amount",
+						tweetid
 					);
 					break;
 				}
@@ -827,20 +687,13 @@ async function main() {
 				try {
 					await jsonRpcFetch("getAccount", toAddress);
 				} catch (err) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" I'm sorry, " +
-								toAddress +
-								" is invalid or something went wrong with the address validation. [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" +
+							from +
+							" I'm sorry, " +
+							toAddress +
+							" is invalid or something went wrong with the address validation.",
+						tweetid,
 						function(error, tweet, response) {
 							winston.warn("%s tried to withdraw to an invalid address", from);
 							return;
@@ -856,21 +709,9 @@ async function main() {
 						settings.coin.min_confirmations
 					);
 				} catch (err) {
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								", I'm sorry I could not get your balance [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
-						function(error, tweet, response) {
-							return;
-						}
+					tweetResponse(
+						"@" + from + ", I'm sorry I could not get your balance",
+						tweetid
 					);
 					break;
 				}
@@ -884,20 +725,16 @@ async function main() {
 								value: amount * settings.coin.inv_precision,
 								fee: settings.coin.miner_fee * settings.coin.inv_precision
 							});
-							client.post(
-								"statuses/update",
-								{
-									status:
-										"@" +
-										from +
-										": " +
-										amountToString(amount) +
-										" $" +
-										settings.coin.short_name +
-										" has been sent from your account to " +
-										toAddress,
-									in_reply_to_status_id: tweetid
-								},
+							tweetResponse(
+								"@" +
+									from +
+									": " +
+									amountToString(amount) +
+									" $" +
+									settings.coin.short_name +
+									" has been sent from your account to " +
+									toAddress,
+								tweetid,
 								function(error, tweet, response) {
 									winston.info(
 										"Sending " +
@@ -913,20 +750,9 @@ async function main() {
 								}
 							);
 						} catch (err) {
-							client.post(
-								"statuses/update",
-								{
-									status:
-										"Could not send coins from @" +
-										from +
-										" to " +
-										toAddress +
-										" [" +
-										settings.coin.random_prefix +
-										random +
-										"]",
-									in_reply_to_status_id: tweetid
-								},
+							tweetResponse(
+								"Could not send coins from @" + from + " to " + toAddress,
+								tweetid,
 								function(error, tweet, response) {
 									winston.error("Error in !send command", err);
 									return;
@@ -936,32 +762,25 @@ async function main() {
 					} else {
 						var short =
 							settings.coin.min_withdraw + settings.coin.miner_fee - amount;
-						client.post(
-							"statuses/update",
-							{
-								status:
-									"@" +
-									from +
-									" I'm sorry, the minimum amount is " +
-									amountToString(settings.coin.min_withdraw) +
-									" $" +
-									settings.coin.short_name +
-									" you are short " +
-									amountToString(short) +
-									" $" +
-									settings.coin.short_name +
-									" [" +
-									settings.coin.random_prefix +
-									random +
-									"]",
-								in_reply_to_status_id: tweetid
-							},
+						tweetResponse(
+							"@" +
+								from +
+								" I'm sorry, the minimum amount is " +
+								amountToString(settings.coin.min_withdraw) +
+								" $" +
+								settings.coin.short_name +
+								" you are short " +
+								amountToString(short) +
+								" $" +
+								settings.coin.short_name,
+							tweetid,
 							function(error, tweet, response) {
 								winston.warn(
-									"%s tried to send %d, but min is set to %d",
-									from,
-									balance,
-									settings.coin.min_withdraw
+									from +
+										" tried to send " +
+										balance +
+										", but min is set to " +
+										settings.coin.min_withdraw
 								);
 								return;
 							}
@@ -969,29 +788,24 @@ async function main() {
 					}
 				} else {
 					var short = amount + settings.coin.miner_fee - balance;
-					client.post(
-						"statuses/update",
-						{
-							status:
-								"@" +
-								from +
-								" I'm sorry, you dont have enough funds (you are short " +
-								amountToString(short) +
-								" $" +
-								settings.coin.short_name +
-								") [" +
-								settings.coin.random_prefix +
-								random +
-								"]",
-							in_reply_to_status_id: tweetid
-						},
+					tweetResponse(
+						"@" +
+							from +
+							" I'm sorry, you dont have enough funds (you are short " +
+							amountToString(short) +
+							" $" +
+							settings.coin.short_name +
+							")",
+						tweetid,
 						function(error, tweet, response) {
 							winston.warn(
-								"%s tried to send %d to %s, but has only %d",
-								from,
-								amountToString(amount),
-								to,
-								balance
+								from +
+									" tried to send " +
+									amountToString(amount) +
+									" to " +
+									to +
+									", but has only " +
+									balance
 							);
 							return;
 						}
@@ -1000,42 +814,24 @@ async function main() {
 				break;
 
 			case "help":
-				client.post(
-					"statuses/update",
-					{
-						in_reply_to_status_id: tweetid,
-						status:
-							"@" +
-							from +
-							" Here is a list of commands: !balance !send !tip !withdraw !address [" +
-							settings.coin.random_prefix +
-							random +
-							"]"
-					},
-					function(error, tweet, response) {
-						return;
-					}
+				tweetResponse(
+					"@" +
+						from +
+						" Here is a list of commands: !balance !send !tip !withdraw !address",
+					tweetid
 				);
 				break;
 
 			default:
 				// if command doesnt match return
-				client.post(
-					"statuses/update",
-					{
-						status:
-							"@" +
-							from +
-							" I'm sorry, I don't recognize that command [" +
-							settings.coin.random_prefix +
-							random +
-							"]",
-						in_reply_to_status_id: tweetid
-					},
+				tweetResponse(
+					"@" + from + " I'm sorry, I don't recognize that command",
+					tweetid,
 					function(error, tweet, response) {
 						winston.info(
 							"sending reply to @" + from + " from tweet id " + tweetid
 						);
+						return;
 					}
 				);
 				break;

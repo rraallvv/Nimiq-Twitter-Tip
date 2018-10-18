@@ -50,6 +50,10 @@ export NIMIQ_RPC_PASS=<nimiq jsonrpc password>
 export DATABASE_HOST=localhost
 export DATABASE_USER=<database user>
 export DATABASE_PASS=<database password>
+# Email notifications
+export EMAIL_ADDRESS=<sender email>
+export EMAIL_PASSWORD=<email password>
+export EMAIL_NOTIFICATION_ADDRESS=<recipient email>
 ```
 
 # How does it work?
