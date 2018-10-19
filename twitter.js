@@ -139,12 +139,15 @@ async function main() {
 			},
 			completion
 		);
+	}
+
+	function emailNotification(message) {
 		transporter.sendMail(
 			{
 				from: process.env.EMAIL_ADDRESS,
 				to: process.env.EMAIL_NOTIFICATION_ADDRESS,
 				subject: "Twitter Tip Bot",
-				text: status
+				text: message
 			},
 			function(error, info) {
 				if (error) {
@@ -154,13 +157,19 @@ async function main() {
 		);
 	}
 
-	var transporter = nodemailer.createTransport(
-		"smtps://" +
-			encodeURI(process.env.EMAIL_ADDRESS) +
-			":" +
-			encodeURI(process.env.EMAIL_PASSWORD) +
-			"@smtp.gmail.com"
-	);
+	var transporter = nodemailer.createTransport({
+		host: "smtp.gmail.com",
+		port: 465,
+		secure: true,
+		auth: {
+			type: "OAuth2",
+			user: process.env.GMAIL_ADDRESS,
+			clientId: process.env.OAUTH_CLIENT_ID,
+			clientSecret: process.env.OAUTH_CLIENT_SECRET,
+			refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+			accessToken: process.env.OAUTH_ACCESS_TOKEN
+		}
+	});
 
 	var keyv = new Keyv(
 		`mysql://${process.env.DATABASE_USER}:${encodeURI(
@@ -226,6 +235,7 @@ async function main() {
 		from = tweet.user.screen_name;
 		from = from.toLowerCase();
 		var message = tweet.text;
+
 		// if message is from username ignore
 		if (from == process.env.TWITTER_USERNAME.toLowerCase()) return;
 		if (message.indexOf(process.env.TWITTER_USERNAME + " ") != -1) {
@@ -245,7 +255,11 @@ async function main() {
 			);
 		}
 		var match = message.match(/^(!)(\S+)/);
-		if (match === null) return;
+		if (match === null) {
+			// forward to notification email
+			emailNotification(tweet.user.screen_name + ":\n" + tweet.text);
+			return;
+		}
 		var prefix = match[1];
 		var command = match[2];
 		tweetid = tweet.id_str;

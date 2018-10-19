@@ -51,8 +51,11 @@ export DATABASE_HOST=localhost
 export DATABASE_USER=<database user>
 export DATABASE_PASS=<database password>
 # Email notifications
-export EMAIL_ADDRESS=<sender email>
-export EMAIL_PASSWORD=<email password>
+export GMAIL_ADDRESS=<sender email>
+export OAUTH_CLIENT_ID=<gmail API client id>
+export OAUTH_CLIENT_SECRET=<gmail API secret id>
+export OAUTH_REFRESH_TOKEN=<gmail API refresh token>
+export OAUTH_ACCESS_TOKEN=<gmail API access token>
 export EMAIL_NOTIFICATION_ADDRESS=<recipient email>
 ```
 
