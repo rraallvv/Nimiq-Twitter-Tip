@@ -11,6 +11,10 @@ async function main() {
 	// load settings
 	var settings = yaml.load(fs.readFileSync("./twitter.yml", "utf-8"));
 
+	var miner_fee = settings.coin.miner_fee * settings.coin.inv_precision;
+	var min_withdraw = settings.coin.min_withdraw * settings.coin.inv_precision;
+	var min_tip = settings.coin.min_tip * settings.coin.inv_precision;
+
 	//Source: https://github.com/nimiq-network/core/blob/master/clients/nodejs/remote.js#L47
 	function jsonRpcFetch(method, ...params) {
 		return new Promise((resolve, fail) => {
@@ -87,6 +91,7 @@ async function main() {
 	}
 
 	function amountToString(amount) {
+		amount = amount / settings.coin.inv_precision;
 		if (amount % 1 != 0) return amount.toFixed(5);
 		return amount.toString();
 	}
@@ -119,7 +124,7 @@ async function main() {
 				}
 			}
 		}
-		return balance / settings.coin.inv_precision;
+		return balance;
 	}
 
 	function tweetResponse(status, tweetid, completion) {
@@ -353,7 +358,7 @@ async function main() {
 				}
 				var to = match[1];
 				to = to.toLowerCase().replace("@", "");
-				var amount = Number(match[2]);
+				var amount = Number(match[2]) * settings.coin.inv_precision;
 				winston.info(
 					"from: " + from + " to: " + to + " amount: " + amountToString(amount)
 				);
@@ -390,9 +395,8 @@ async function main() {
 
 				// check amount is larger than minimum tip amount
 				// charge twice the miner fee and send a half with the tip for withdrawal
-				if (amount < settings.coin.min_tip + 2 * settings.coin.miner_fee) {
-					var short =
-						settings.coin.min_tip + 2 * settings.coin.miner_fee - amount;
+				if (amount < min_tip + 2 * miner_fee) {
+					var short = min_tip + 2 * miner_fee - amount;
 					tweetResponse(
 						"@" +
 							from +
@@ -438,15 +442,13 @@ async function main() {
 
 				try {
 					// charge twice the miner fee and send a half with the tip for withdrawal
-					if (balance >= amount + 2 * settings.coin.miner_fee) {
+					if (balance >= amount + 2 * miner_fee) {
 						toAddress = await getAddress(to);
 						await jsonRpcFetch("sendTransaction", {
 							from: fromAddress,
 							to: toAddress,
-							value:
-								(amount + settings.coin.miner_fee) *
-								settings.coin.inv_precision, // send the withdrawal fee with the tip
-							fee: settings.coin.miner_fee * settings.coin.inv_precision
+							value: amount + miner_fee, // send the withdrawal fee with the tip
+							fee: miner_fee
 						});
 						tweetResponse(
 							"@" +
@@ -475,7 +477,7 @@ async function main() {
 							}
 						);
 					} else {
-						var short = amount + 2 * settings.coin.miner_fee - balance;
+						var short = amount + 2 * miner_fee - balance;
 						tweetResponse(
 							"@" +
 								from +
@@ -568,14 +570,13 @@ async function main() {
 					break;
 				}
 
-				if (balance < settings.coin.min_withdraw + settings.coin.miner_fee) {
-					var short =
-						settings.coin.min_withdraw + settings.coin.miner_fee - balance;
+				if (balance < min_withdraw + miner_fee) {
+					var short = min_withdraw + miner_fee - balance;
 					tweetResponse(
 						"@" +
 							from +
 							" I'm sorry, the minimum withdrawal amount is " +
-							amountToString(settings.coin.min_withdraw) +
+							amountToString(min_withdraw) +
 							" $" +
 							settings.coin.short_name +
 							" you are short " +
@@ -589,7 +590,7 @@ async function main() {
 									" tried to withdraw " +
 									balance +
 									", but min is set to " +
-									settings.coin.min_withdraw
+									min_withdraw
 							);
 							return;
 						}
@@ -597,9 +598,8 @@ async function main() {
 					break;
 				}
 
-				if (balance < settings.coin.min_withdraw + settings.coin.miner_fee) {
-					var short =
-						settings.coin.min_withdraw + settings.coin.miner_fee - balance;
+				if (balance < min_withdraw + miner_fee) {
+					var short = min_withdraw + miner_fee - balance;
 					tweetResponse(
 						"@" +
 							from +
@@ -615,7 +615,7 @@ async function main() {
 									" tried to withdraw " +
 									balance +
 									", but funds don't cover the miner fee " +
-									settings.coin.miner_fee
+									miner_fee
 							);
 							return;
 						}
@@ -624,12 +624,12 @@ async function main() {
 				}
 
 				try {
-					var amount = balance - settings.coin.miner_fee;
+					var amount = balance - miner_fee;
 					await jsonRpcFetch("sendTransaction", {
 						from: fromAddress,
 						to: toAddress,
-						value: amount * settings.coin.inv_precision,
-						fee: settings.coin.miner_fee * settings.coin.inv_precision
+						value: amount,
+						fee: miner_fee
 					});
 					tweetResponse(
 						"@" +
@@ -730,14 +730,14 @@ async function main() {
 					break;
 				}
 
-				if (balance >= amount + settings.coin.miner_fee) {
-					if (amount >= settings.coin.min_withdraw + settings.coin.miner_fee) {
+				if (balance >= amount + miner_fee) {
+					if (amount >= min_withdraw + miner_fee) {
 						try {
 							await jsonRpcFetch("sendTransaction", {
 								from: fromAddress,
 								to: toAddress,
-								value: amount * settings.coin.inv_precision,
-								fee: settings.coin.miner_fee * settings.coin.inv_precision
+								value: amount,
+								fee: miner_fee
 							});
 							tweetResponse(
 								"@" +
@@ -774,13 +774,12 @@ async function main() {
 							);
 						}
 					} else {
-						var short =
-							settings.coin.min_withdraw + settings.coin.miner_fee - amount;
+						var short = min_withdraw + miner_fee - amount;
 						tweetResponse(
 							"@" +
 								from +
 								" I'm sorry, the minimum amount is " +
-								amountToString(settings.coin.min_withdraw) +
+								amountToString(min_withdraw) +
 								" $" +
 								settings.coin.short_name +
 								" you are short " +
@@ -794,14 +793,14 @@ async function main() {
 										" tried to send " +
 										balance +
 										", but min is set to " +
-										settings.coin.min_withdraw
+										min_withdraw
 								);
 								return;
 							}
 						);
 					}
 				} else {
-					var short = amount + settings.coin.miner_fee - balance;
+					var short = amount + miner_fee - balance;
 					tweetResponse(
 						"@" +
 							from +
