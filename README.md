@@ -115,6 +115,10 @@ If Twitter shows the message **"You have already sent this Tweet"** simply add s
 
 **@NimiqB** !withdraw fwrh34iuhf
 
+## Important
+
+For the tweets to appear in the notifications tab for the users being tweeted by the tip-bot they need to have disabled the option **Quality filter** located at **Settings and Privacy > Notifications > Advanced**.
+
 ## ~~Beer~~ Coffee Fund 😄
 
 If you like the Twitter bot please donate some NIM 
