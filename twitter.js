@@ -16,78 +16,82 @@ async function main() {
 	var min_tip = settings.coin.min_tip * settings.coin.inv_precision;
 
 	//Source: https://github.com/nimiq-network/core/blob/master/clients/nodejs/remote.js#L47
-	function jsonRpcFetch(method, ...params) {
-		return new Promise((resolve, fail) => {
-			while (
-				params.length > 0 &&
-				typeof params[params.length - 1] === "undefined"
-			)
-				params.pop();
-			const jsonrpc = JSON.stringify({
-				jsonrpc: "2.0",
-				id: 42,
-				method: method,
-				params: params
-			});
-			const headers = { "Content-Length": jsonrpc.length };
-			headers["Authorization"] = `Basic ${btoa(
-				`${process.env.NIMIQ_RPC_USER}:${process.env.NIMIQ_RPC_PASS}`
-			)}`;
-			const req = http.request(
-				{
-					hostname: settings.rpc.host,
-					port: settings.rpc.port,
-					method: "POST",
-					headers: headers
-				},
-				res => {
-					if (res.statusCode === 401) {
-						fail(
-							new Error(
-								`Request Failed: Authentication Required. Status Code: ${
-									res.statusCode
-								}`
-							)
-						);
-						res.resume();
-						return;
-					}
-					if (res.statusCode !== 200) {
-						fail(
-							new Error(
-								`Request Failed. ${
-									res.statusMessage ? `${res.statusMessage} - ` : ""
-								}Status Code: ${res.statusCode}`
-							)
-						);
-						res.resume();
-						return;
-					}
-
-					res.setEncoding("utf8");
-					let rawData = "";
-					res.on("error", fail);
-					res.on("data", chunk => {
-						rawData += chunk;
-					});
-					res.on("end", () => {
-						try {
-							const parse = JSON.parse(rawData);
-							if (parse.error) {
-								fail(parse.error.message);
-							} else {
-								resolve(parse.result);
-							}
-						} catch (e) {
-							fail(e);
+	async function jsonRpcFetch(method, ...params) {
+		try {
+			return await new Promise((resolve, fail) => {
+				while (
+					params.length > 0 &&
+					typeof params[params.length - 1] === "undefined"
+				)
+					params.pop();
+				const jsonrpc = JSON.stringify({
+					jsonrpc: "2.0",
+					id: 42,
+					method: method,
+					params: params
+				});
+				const headers = { "Content-Length": jsonrpc.length };
+				headers["Authorization"] = `Basic ${btoa(
+					`${process.env.NIMIQ_RPC_USER}:${process.env.NIMIQ_RPC_PASS}`
+				)}`;
+				const req = http.request(
+					{
+						hostname: process.env.NIMIQ_RPC_HOST,
+						port: process.env.NIMIQ_RPC_PORT,
+						method: "POST",
+						headers: headers
+					},
+					res => {
+						if (res.statusCode === 401) {
+							fail(
+								new Error(
+									`Request Failed: Authentication Required. Status Code: ${
+										res.statusCode
+									}`
+								)
+							);
+							res.resume();
+							return;
 						}
-					});
-				}
-			);
-			req.on("error", fail);
-			req.write(jsonrpc);
-			req.end();
-		});
+						if (res.statusCode !== 200) {
+							fail(
+								new Error(
+									`Request Failed. ${
+										res.statusMessage ? `${res.statusMessage} - ` : ""
+									}Status Code: ${res.statusCode}`
+								)
+							);
+							res.resume();
+							return;
+						}
+
+						res.setEncoding("utf8");
+						let rawData = "";
+						res.on("error", fail);
+						res.on("data", chunk => {
+							rawData += chunk;
+						});
+						res.on("end", () => {
+							try {
+								const parse = JSON.parse(rawData);
+								if (parse.error) {
+									fail(parse.error.message);
+								} else {
+									resolve(parse.result);
+								}
+							} catch (e) {
+								fail(e);
+							}
+						});
+					}
+				);
+				req.on("error", fail);
+				req.write(jsonrpc);
+				req.end();
+			});
+		} catch (e) {
+			console.error("Couldn't fetch JSON-RPC data", e.message);
+		}
 	}
 
 	function amountToString(amount) {
@@ -160,6 +164,14 @@ async function main() {
 				}
 			}
 		);
+	}
+
+	const blockNumber = await jsonRpcFetch("blockNumber");
+
+	// TODO: check if blockchain is fully synced
+	if (!blockNumber) {
+		console.error("Couldn't get blockNumber");
+		process.exit(1);
 	}
 
 	var transporter = nodemailer.createTransport({
