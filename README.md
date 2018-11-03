@@ -14,7 +14,7 @@ After installation proceed to the configuration file `twitter.yml`.
 ## log
 Logging settings.
 * **file** - File to log to. Set to `false` to disable logging to file.
-* **level** - Debug level. Alowed values are `'error'`, `'warn'`, `'info'`, `'verbose'`, `'debug'`, and `'silly'`. Defaul value is `'info'`.
+* **level** - Debug level. Alowed values are `'error'`, `'warn'`, `'info'`, `'verbose'`, `'debug'`, and `'silly'`. Default value is `'info'`.
 
 ## rpc
 JSON RPC API connection info.
@@ -46,8 +46,10 @@ export TWITTER_ACCESS_TOKEN_SECRET=<twitter app access token>
 # Nimiq jsonrpc client
 export NIMIQ_RPC_USER=<nimiq jsonrpc user>
 export NIMIQ_RPC_PASS=<nimiq jsonrpc password>
+export NIMIQ_RPC_HOST=<server address>
+export NIMIQ_RPC_PORT=<server port>
 # Database
-export DATABASE_HOST=localhost
+export DATABASE_HOST=<server address>
 export DATABASE_USER=<database user>
 export DATABASE_PASS=<database password>
 # Email notifications
@@ -78,20 +80,20 @@ Before running the bot, you have to be running a node in the Nimiq blockchain wi
 ```
 To start the rpc server using this configuration file run `node clients/nodejs/index.js --config=settings.conf` from the directory where you have the Nimiq core (e.g. `~/nimiq-core/`)
 
-To run Nimiq-Twitter-Tip run `node twitter` or `npm start` in the directory where you cloned this repository.
+To run Nimiq-Twitter-Tip execute the command `node twitter` or `npm start` in the directory where you cloned this repository.
 
 ## Commands
 
-Instructions are executed by messaging the bot on Twitter with one of the following command preceded by an exclamation mark.
+Instructions are executed by messaging the bot on Twitter with one of the following commands preceded by an exclamation mark.
 
 | **Command** | **Arguments**     | **Description**
 |-------------|-------------------|--------------------------------------------------------------------
-| `address`   |                      | Displays address where you can send your funds to the tip bot
-| `balance`   |                      | Displays your current wallet balance
-| `help`      |                      | Displays configured help message (by default similiar to this one)
-| `send`      | `<address> <amount>` | Sends the specified amount of coins to the specified address
-| `tip`       | `<nickname> <amount>`    | Sends the specified amount of coins to the specified nickname
-| `withdraw`  | `<address>`          | Withdraws your whole wallet balance to specified address
+| `address`   |                      | Displays address where you can send your funds to the tip bot.
+| `balance`   |                      | Displays your current wallet balance.
+| `help`      |                      | Displays a help message with the list of available commands.
+| `send`      | `<address> <amount>` | Sends the specified amount of coins to the specified address.
+| `tip`       | `<nickname> <amount>`    | Sends the specified amount of coins to the specified nickname.
+| `withdraw`  | `<address>`          | Withdraws your entire balance to the specified address.
 
 ## Examples
 
@@ -101,7 +103,7 @@ Instructions are executed by messaging the bot on Twitter with one of the follow
 
 **@NimiqB** !send NQ40 7G2N J5FN 51MV 95DG FCQ9 ET11 DVMV QR1F 5
 
-**@NimiqB** !withdraw
+**@NimiqB** !withdraw NQ40 7G2N J5FN 51MV 95DG FCQ9 ET11 DVMV QR1F
 
 ## "You have already sent this Tweet"
 
@@ -113,11 +115,11 @@ If Twitter shows the message **"You have already sent this Tweet"** simply add s
 
 **@NimiqB** !send NQ40 7G2N J5FN 51MV 95DG FCQ9 ET11 DVMV QR1F 5 fwrh34iuhf
 
-**@NimiqB** !withdraw fwrh34iuhf
+**@NimiqB** !withdraw NQ40 7G2N J5FN 51MV 95DG FCQ9 ET11 DVMV QR1F fwrh34iuhf
 
 ## Important
 
-For the tweets to appear in the notifications tab for the users being tweeted by the tip-bot they need to have disabled the option **Quality filter** located at **Settings and Privacy > Notifications > Advanced**.
+For the tweets to appear in the receiving user's notifications tab they have to disabled the option **Quality filter** located in **Settings and Privacy > Notifications > Advanced**.
 
 ## ~~Beer~~ Coffee Fund 😄
 

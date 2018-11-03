@@ -1,42 +1,41 @@
 {
-  "name": "Twitter-Tip",
-  "version": "1.0.0",
-  "description": "node.js based tipping bot for Crown",
-  "main": "twitter",
-  "dependencies": {
-    "@keyv/mysql": "^1.1.4",
-    "btoa": "^1.2.1",
-    "js-yaml": "~3.2.2",
-    "keyv": "^3.1.0",
-    "nodemailer": "^4.6.8",
-    "twit": "2.1.0",
-    "winston": "~0.8.1"
-  },
-  "devDependencies": {},
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node twitter.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/crowndev/Twitter-Tip.git"
-  },
-  "author": "Infernoman",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/crowndev/Twitter-Tip/issues"
-  },
-  "homepage": "https://github.com/crowndev/Twitter-Tip",
-  "keywords": [
-    "altcoin",
-    "crowncoin",
-    "crown",
-    "node",
-    "tip",
-    "tipbot",
-    "twitter",
-    "rpc",
-    "ticker",
-    "bot"
-  ]
+	"name": "Nimiq-Twitter-Tip",
+	"version": "1.0.0",
+	"description": "node.js based tipping bot for Nimiq",
+	"main": "twitter",
+	"dependencies": {
+		"@keyv/mysql": "^1.1.4",
+		"btoa": "^1.2.1",
+		"js-yaml": "~3.2.2",
+		"keyv": "^3.1.0",
+		"nodemailer": "^4.6.8",
+		"twit": "2.1.0",
+		"winston": "~0.8.1"
+	},
+	"devDependencies": {},
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"start": "node twitter.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/rraallvv/Nimiq-Twitter-Tip.git"
+	},
+	"author": "rraallvv",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/rraallvv/Nimiq-Twitter-Tip"
+	},
+	"homepage": "https://github.com/rraallvv/Nimiq-Twitter-Tip",
+	"keywords": [
+		"altcoin",
+		"nim",
+		"nimiq",
+		"node",
+		"tip",
+		"tipbot",
+		"twitter",
+		"rpc",
+		"bot"
+	]
 }
