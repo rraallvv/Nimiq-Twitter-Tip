@@ -183,6 +183,7 @@ async function main() {
 			process.exit(1);
 		}
 	} catch (err) {
+		emailNotification(err.message);
 		console.error("Couldn't get blockNumber", err);
 		process.exit(1);
 	}
@@ -227,6 +228,7 @@ async function main() {
 			amountToString(balance)
 		);
 	} catch (err) {
+		emailNotification(err.message);
 		winston.error("Couldn't get wallet balance", err);
 		process.exit(1);
 	}
@@ -290,7 +292,16 @@ async function main() {
 					var unconfirmed_balance = await getBalance(address);
 					unconfirmed_balance -= balance;
 
-					winston.info(from + "'s Balance is " + amountToString(balance));
+					winston.info(
+						from +
+							"'s Balance is " +
+							amountToString(balance) +
+							(unconfirmed_balance > 0
+								? " ( Unconfirmed: " +
+								  amountToString(unconfirmed_balance) +
+								  " )"
+								: "")
+					);
 					tweetResponse(
 						"@" +
 							from +
@@ -309,6 +320,7 @@ async function main() {
 						tweetid
 					);
 				} catch (err) {
+					emailNotification(err.message);
 					tweetResponse("Could not get balance for @" + from, tweetid, function(
 						error,
 						tweet,
@@ -333,6 +345,7 @@ async function main() {
 						}
 					);
 				} catch (err) {
+					emailNotification(err.message);
 					tweetResponse(
 						"@" +
 							from +
@@ -436,6 +449,7 @@ async function main() {
 						settings.coin.min_confirmations
 					);
 				} catch (err) {
+					emailNotification(err.message);
 					tweetResponse("Could not get balance for @" + from, tweetid, function(
 						error,
 						tweet,
@@ -509,6 +523,7 @@ async function main() {
 						);
 					}
 				} catch (err) {
+					emailNotification(err.message);
 					tweetResponse(
 						"Could not send coins from @" + from + " to @" + to,
 						tweetid,
@@ -561,12 +576,12 @@ async function main() {
 						break;
 					}
 				} catch (err) {
+					emailNotification(err.message);
 					tweetResponse(
 						"@" +
 							from +
-							" I'm sorry, " +
-							toAddress +
-							" something went wrong with the address validation.",
+							" I'm sorry, something went wrong with the address validation for " +
+							toAddress,
 						tweetid,
 						function(error, tweet, response) {
 							winston.warn(
@@ -587,6 +602,7 @@ async function main() {
 						settings.coin.min_confirmations
 					);
 				} catch (err) {
+					emailNotification(err.message);
 					tweetResponse(
 						"@" + from + ", I'm sorry I could not get your balance",
 						tweetid
@@ -680,6 +696,7 @@ async function main() {
 						}
 					);
 				} catch (err) {
+					emailNotification(err.message);
 					tweetResponse(
 						"Could not send coins from @" + from + " to " + toAddress,
 						tweetid,
@@ -710,7 +727,7 @@ async function main() {
 					break;
 				}
 				var toAddress = match[1],
-					amount = Number(match[2]),
+					amount = Number(match[2]) * settings.coin.inv_precision,
 					fromAddress,
 					balance;
 
@@ -738,12 +755,12 @@ async function main() {
 						break;
 					}
 				} catch (err) {
+					emailNotification(err.message);
 					tweetResponse(
 						"@" +
 							from +
-							" I'm sorry, " +
-							toAddress +
-							" something went wrong with the address validation.",
+							" I'm sorry, something went wrong with the address validation for " +
+							toAddress,
 						tweetid,
 						function(error, tweet, response) {
 							winston.warn(
@@ -764,6 +781,7 @@ async function main() {
 						settings.coin.min_confirmations
 					);
 				} catch (err) {
+					emailNotification(err.message);
 					tweetResponse(
 						"@" + from + ", I'm sorry I could not get your balance",
 						tweetid
@@ -805,6 +823,7 @@ async function main() {
 								}
 							);
 						} catch (err) {
+							emailNotification(err.message);
 							tweetResponse(
 								"Could not send coins from @" + from + " to " + toAddress,
 								tweetid,
