@@ -15,83 +15,93 @@ async function main() {
 	var min_withdraw = settings.coin.min_withdraw * settings.coin.inv_precision;
 	var min_tip = settings.coin.min_tip * settings.coin.inv_precision;
 
-	//Source: https://github.com/nimiq-network/core/blob/master/clients/nodejs/remote.js#L47
-	async function jsonRpcFetch(method, ...params) {
-		try {
-			return await new Promise((resolve, fail) => {
-				while (
-					params.length > 0 &&
-					typeof params[params.length - 1] === "undefined"
-				)
-					params.pop();
-				const jsonrpc = JSON.stringify({
-					jsonrpc: "2.0",
-					id: 42,
-					method: method,
-					params: params
-				});
-				const headers = { "Content-Length": jsonrpc.length };
-				headers["Authorization"] = `Basic ${btoa(
-					`${process.env.NIMIQ_RPC_USER}:${process.env.NIMIQ_RPC_PASS}`
-				)}`;
-				const req = http.request(
-					{
-						hostname: process.env.NIMIQ_RPC_HOST,
-						port: process.env.NIMIQ_RPC_PORT,
-						method: "POST",
-						headers: headers
-					},
-					res => {
-						if (res.statusCode === 401) {
-							fail(
-								new Error(
-									`Request Failed: Authentication Required. Status Code: ${
-										res.statusCode
-									}`
-								)
-							);
-							res.resume();
-							return;
-						}
-						if (res.statusCode !== 200) {
-							fail(
-								new Error(
-									`Request Failed. ${
-										res.statusMessage ? `${res.statusMessage} - ` : ""
-									}Status Code: ${res.statusCode}`
-								)
-							);
-							res.resume();
-							return;
-						}
-
-						res.setEncoding("utf8");
-						let rawData = "";
-						res.on("error", fail);
-						res.on("data", chunk => {
-							rawData += chunk;
-						});
-						res.on("end", () => {
-							try {
-								const parse = JSON.parse(rawData);
-								if (parse.error) {
-									fail(parse.error.message);
-								} else {
-									resolve(parse.result);
-								}
-							} catch (e) {
-								fail(e);
-							}
-						});
-					}
-				);
-				req.on("error", fail);
-				req.write(jsonrpc);
-				req.end();
-			});
-		} catch (e) {
-			console.error("Couldn't fetch JSON-RPC data", e.message);
+	var transporter = nodemailer.createTransport({
+		host: "smtp.gmail.com",
+		port: 465,
+		secure: true,
+		auth: {
+			type: "OAuth2",
+			user: process.env.GMAIL_ADDRESS,
+			clientId: process.env.OAUTH_CLIENT_ID,
+			clientSecret: process.env.OAUTH_CLIENT_SECRET,
+			refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+			accessToken: process.env.OAUTH_ACCESS_TOKEN
 		}
+	});
+
+	//Source: https://github.com/nimiq-network/core/blob/master/clients/nodejs/remote.js#L47
+	function jsonRpcFetch(method, ...params) {
+		return new Promise((resolve, fail) => {
+			while (
+				params.length > 0 &&
+				typeof params[params.length - 1] === "undefined"
+			)
+				params.pop();
+			const jsonrpc = JSON.stringify({
+				jsonrpc: "2.0",
+				id: 42,
+				method: method,
+				params: params
+			});
+			const headers = { "Content-Length": jsonrpc.length };
+			headers["Authorization"] = `Basic ${btoa(
+				`${process.env.NIMIQ_RPC_USER}:${process.env.NIMIQ_RPC_PASS}`
+			)}`;
+			const req = http.request(
+				{
+					hostname: process.env.NIMIQ_RPC_HOST,
+					port: process.env.NIMIQ_RPC_PORT,
+					method: "POST",
+					headers: headers
+				},
+				res => {
+					if (res.statusCode === 401) {
+						fail(
+							new Error(
+								`Request Failed: Authentication Required. Status Code: ${
+									res.statusCode
+								}`
+							)
+						);
+						res.resume();
+						return;
+					}
+					if (res.statusCode !== 200) {
+						fail(
+							new Error(
+								`Request Failed. ${
+									res.statusMessage ? `${res.statusMessage} - ` : ""
+								}Status Code: ${res.statusCode}`
+							)
+						);
+						res.resume();
+						return;
+					}
+
+					res.setEncoding("utf8");
+					let rawData = "";
+					res.on("error", fail);
+					res.on("data", chunk => {
+						rawData += chunk;
+					});
+					res.on("end", () => {
+						try {
+							const parse = JSON.parse(rawData);
+							if (parse.error) {
+								fail(parse.error.message);
+							} else {
+								resolve(parse.result);
+							}
+						} catch (e) {
+							fail(e);
+						}
+					});
+				}
+			);
+			req.on("error", fail);
+			req.write(jsonrpc);
+			req.end();
+		});
 	}
 
 	function amountToString(amount) {
@@ -166,27 +176,16 @@ async function main() {
 		);
 	}
 
-	const blockNumber = await jsonRpcFetch("blockNumber");
-
-	// TODO: check if blockchain is fully synced
-	if (!blockNumber) {
-		console.error("Couldn't get blockNumber");
+	try {
+		const blockNumber = await jsonRpcFetch("blockNumber");
+		// TODO: check if the node is fully synced
+		if (!blockNumber) {
+			process.exit(1);
+		}
+	} catch (err) {
+		console.error("Couldn't get blockNumber", err);
 		process.exit(1);
 	}
-
-	var transporter = nodemailer.createTransport({
-		host: "smtp.gmail.com",
-		port: 465,
-		secure: true,
-		auth: {
-			type: "OAuth2",
-			user: process.env.GMAIL_ADDRESS,
-			clientId: process.env.OAUTH_CLIENT_ID,
-			clientSecret: process.env.OAUTH_CLIENT_SECRET,
-			refreshToken: process.env.OAUTH_REFRESH_TOKEN,
-			accessToken: process.env.OAUTH_ACCESS_TOKEN
-		}
-	});
 
 	var keyv = new Keyv(
 		`mysql://${process.env.DATABASE_USER}:${encodeURI(
@@ -228,11 +227,7 @@ async function main() {
 			amountToString(balance)
 		);
 	} catch (err) {
-		winston.error(
-			"Could not connect to %s RPC API! ",
-			settings.coin.full_name,
-			err
-		);
+		winston.error("Couldn't get wallet balance", err);
 		process.exit(1);
 	}
 
@@ -500,7 +495,7 @@ async function main() {
 								")",
 							tweetid,
 							function(error, tweet, response) {
-								winston.error(
+								winston.warn(
 									from +
 										" tried to tip " +
 										to +
@@ -519,7 +514,7 @@ async function main() {
 						tweetid,
 						function(error, tweet, response) {
 							winston.error(
-								"Error while moving coins from " + from + " to " + to,
+								"Error while sending coins from " + from + " to " + to,
 								err
 							);
 							return;
@@ -551,17 +546,34 @@ async function main() {
 					balance;
 
 				try {
-					await jsonRpcFetch("getAccount", toAddress);
+					if (!(await jsonRpcFetch("getAccount", toAddress))) {
+						tweetResponse(
+							"@" + from + " I'm sorry, " + toAddress + " is invalid.",
+							tweetid,
+							function(error, tweet, response) {
+								winston.warn(
+									"%s tried to withdraw to an invalid address",
+									from
+								);
+								return;
+							}
+						);
+						break;
+					}
 				} catch (err) {
 					tweetResponse(
 						"@" +
 							from +
 							" I'm sorry, " +
 							toAddress +
-							" is invalid or something went wrong with the address validation.",
+							" something went wrong with the address validation.",
 						tweetid,
 						function(error, tweet, response) {
-							winston.warn("%s tried to withdraw to an invalid address", from);
+							winston.warn(
+								"%s tried to withdraw but something went wrong",
+								from,
+								err
+							);
 							return;
 						}
 					);
@@ -711,17 +723,34 @@ async function main() {
 				}
 
 				try {
-					await jsonRpcFetch("getAccount", toAddress);
+					if (!(await jsonRpcFetch("getAccount", toAddress))) {
+						tweetResponse(
+							"@" + from + " I'm sorry, " + toAddress + " is invalid.",
+							tweetid,
+							function(error, tweet, response) {
+								winston.warn(
+									"%s tried to withdraw to an invalid address",
+									from
+								);
+								return;
+							}
+						);
+						break;
+					}
 				} catch (err) {
 					tweetResponse(
 						"@" +
 							from +
 							" I'm sorry, " +
 							toAddress +
-							" is invalid or something went wrong with the address validation.",
+							" something went wrong with the address validation.",
 						tweetid,
 						function(error, tweet, response) {
-							winston.warn("%s tried to withdraw to an invalid address", from);
+							winston.warn(
+								"%s tried to withdraw but something went wrong",
+								from,
+								err
+							);
 							return;
 						}
 					);
