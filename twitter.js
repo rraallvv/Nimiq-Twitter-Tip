@@ -337,14 +337,14 @@ async function main() {
 					);
 				} catch (err) {
 					emailNotification(dumpError(err));
-					tweetResponse("Could not get balance for @" + from, tweetid, function(
-						error,
-						tweet,
-						response
-					) {
-						winston.error("Error in !balance command", err);
-						return;
-					});
+					tweetResponse(
+						"@" + from + ", Could not get your balance.",
+						tweetid,
+						function(error, tweet, response) {
+							winston.error("Error in !balance command", err);
+							return;
+						}
+					);
 				}
 				break;
 
@@ -466,14 +466,14 @@ async function main() {
 					);
 				} catch (err) {
 					emailNotification(dumpError(err));
-					tweetResponse("Could not get balance for @" + from, tweetid, function(
-						error,
-						tweet,
-						response
-					) {
-						winston.error("Error while checking balance for " + from, err);
-						return;
-					});
+					tweetResponse(
+						"@" + from + ", Could not get your balance.",
+						tweetid,
+						function(error, tweet, response) {
+							winston.error("Error while checking balance for " + from, err);
+							return;
+						}
+					);
 					break;
 				}
 
@@ -541,7 +541,7 @@ async function main() {
 				} catch (err) {
 					emailNotification(dumpError(err));
 					tweetResponse(
-						"Could not send coins from @" + from + " to @" + to,
+						"@" + from + ", Could not send coins to @" + to,
 						tweetid,
 						function(error, tweet, response) {
 							winston.error(
@@ -714,7 +714,7 @@ async function main() {
 				} catch (err) {
 					emailNotification(dumpError(err));
 					tweetResponse(
-						"Could not send coins from @" + from + " to " + toAddress,
+						"@" + from + ", Could not send coins to " + toAddress,
 						tweetid,
 						function(error, tweet, response) {
 							winston.error("Error in !withdraw command", err);
@@ -841,7 +841,7 @@ async function main() {
 						} catch (err) {
 							emailNotification(dumpError(err));
 							tweetResponse(
-								"Could not send coins from @" + from + " to " + toAddress,
+								"@" + from + ", Could not send coins to " + toAddress,
 								tweetid,
 								function(error, tweet, response) {
 									winston.error("Error in !send command", err);
