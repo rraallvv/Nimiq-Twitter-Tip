@@ -172,6 +172,26 @@ async function main() {
 		);
 	}
 
+	function dumpError(err) {
+		var result = "dumpError:";
+		if (typeof err === "object") {
+			if (err.message) {
+				result += "\nMessage: " + err.message;
+			}
+			if (err.stack) {
+				result += "\nStacktrace:";
+				result += "\n====================";
+				result += "\n" + err.stack;
+			}
+		} else if (typeof err === "string") {
+			result += "\n" + err;
+		} else {
+			result +=
+				"\nargument is neither an object nor a string (" + typeof err + ")";
+		}
+		return result;
+	}
+
 	try {
 		const blockNumber = await jsonRpcFetch("blockNumber");
 		// TODO: check if the node is fully synced
@@ -179,7 +199,7 @@ async function main() {
 			process.exit(1);
 		}
 	} catch (err) {
-		emailNotification(err.message);
+		emailNotification(dumpError(err));
 		console.error("Couldn't get blockNumber", err);
 		process.exit(1);
 	}
@@ -224,7 +244,7 @@ async function main() {
 			amountToString(balance)
 		);
 	} catch (err) {
-		emailNotification(err.message);
+		emailNotification(dumpError(err));
 		winston.error("Couldn't get wallet balance", err);
 		process.exit(1);
 	}
@@ -316,7 +336,7 @@ async function main() {
 						tweetid
 					);
 				} catch (err) {
-					emailNotification(err.message);
+					emailNotification(dumpError(err));
 					tweetResponse("Could not get balance for @" + from, tweetid, function(
 						error,
 						tweet,
@@ -341,7 +361,7 @@ async function main() {
 						}
 					);
 				} catch (err) {
-					emailNotification(err.message);
+					emailNotification(dumpError(err));
 					tweetResponse(
 						"@" +
 							from +
@@ -445,7 +465,7 @@ async function main() {
 						settings.coin.min_confirmations
 					);
 				} catch (err) {
-					emailNotification(err.message);
+					emailNotification(dumpError(err));
 					tweetResponse("Could not get balance for @" + from, tweetid, function(
 						error,
 						tweet,
@@ -519,7 +539,7 @@ async function main() {
 						);
 					}
 				} catch (err) {
-					emailNotification(err.message);
+					emailNotification(dumpError(err));
 					tweetResponse(
 						"Could not send coins from @" + from + " to @" + to,
 						tweetid,
@@ -572,7 +592,7 @@ async function main() {
 						break;
 					}
 				} catch (err) {
-					emailNotification(err.message);
+					emailNotification(dumpError(err));
 					tweetResponse(
 						"@" +
 							from +
@@ -598,7 +618,7 @@ async function main() {
 						settings.coin.min_confirmations
 					);
 				} catch (err) {
-					emailNotification(err.message);
+					emailNotification(dumpError(err));
 					tweetResponse(
 						"@" + from + ", I'm sorry I could not get your balance",
 						tweetid
@@ -692,7 +712,7 @@ async function main() {
 						}
 					);
 				} catch (err) {
-					emailNotification(err.message);
+					emailNotification(dumpError(err));
 					tweetResponse(
 						"Could not send coins from @" + from + " to " + toAddress,
 						tweetid,
@@ -751,7 +771,7 @@ async function main() {
 						break;
 					}
 				} catch (err) {
-					emailNotification(err.message);
+					emailNotification(dumpError(err));
 					tweetResponse(
 						"@" +
 							from +
@@ -777,7 +797,7 @@ async function main() {
 						settings.coin.min_confirmations
 					);
 				} catch (err) {
-					emailNotification(err.message);
+					emailNotification(dumpError(err));
 					tweetResponse(
 						"@" + from + ", I'm sorry I could not get your balance",
 						tweetid
@@ -819,7 +839,7 @@ async function main() {
 								}
 							);
 						} catch (err) {
-							emailNotification(err.message);
+							emailNotification(dumpError(err));
 							tweetResponse(
 								"Could not send coins from @" + from + " to " + toAddress,
 								tweetid,
