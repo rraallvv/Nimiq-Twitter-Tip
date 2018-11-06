@@ -85,15 +85,11 @@ async function main() {
 						rawData += chunk;
 					});
 					res.on("end", () => {
-						try {
-							const parse = JSON.parse(rawData);
-							if (parse.error) {
-								fail(parse.error.message);
-							} else {
-								resolve(parse.result);
-							}
-						} catch (e) {
-							fail(e);
+						const parse = JSON.parse(rawData);
+						if (parse.error) {
+							fail(new Error(parse.error.message));
+						} else {
+							resolve(parse.result);
 						}
 					});
 				}
