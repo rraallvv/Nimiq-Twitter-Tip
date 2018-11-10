@@ -200,7 +200,7 @@ async function main() {
 		}
 	} catch (err) {
 		emailNotification(dumpError(err));
-		console.error("Couldn't get blockNumber", err);
+		winston.error("Couldn't get blockNumber", err);
 		process.exit(1);
 	}
 
@@ -210,7 +210,10 @@ async function main() {
 		)}@${process.env.DATABASE_HOST}:3306/nimiq_tip_bot`
 	);
 	// Handle DB connection errors
-	keyv.on("error", err => console.log("Connection Error", err));
+	keyv.on("error", err => {
+		emailNotification(dumpError(err));
+		winston.error("DB connection Error", err);
+	});
 
 	// check if the config file exists
 	if (!fs.existsSync("./twitter.yml")) {
