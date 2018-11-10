@@ -264,8 +264,13 @@ async function main() {
 	stream.on("tweet", async function(tweet) {
 		from = tweet.user.screen_name;
 		from = from.toLowerCase();
-		var message = tweet.text;
-
+		var fullTweet;
+		if (tweet.extended_tweet && tweet.extended_tweet.full_text) {
+			fullTweet = tweet.extended_tweet.full_text;
+		} else {
+			fullTweet = tweet.text;
+		}
+		var message = fullTweet;
 		// if message is from username ignore
 		if (from == process.env.TWITTER_USERNAME.toLowerCase()) return;
 		if (message.indexOf(process.env.TWITTER_USERNAME + " ") != -1) {
@@ -287,7 +292,7 @@ async function main() {
 		var match = message.match(/^(!)(\S+)/);
 		if (match === null) {
 			// forward to notification email
-			emailNotification(tweet.user.screen_name + ":\n" + tweet.text);
+			emailNotification(tweet.user.screen_name + ":\n" + fullTweet);
 			return;
 		}
 		var prefix = match[1];
