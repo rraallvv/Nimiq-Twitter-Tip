@@ -267,39 +267,32 @@ async function main() {
 	stream.on("tweet", async function(tweet) {
 		from = tweet.user.screen_name;
 		from = from.toLowerCase();
+		// if message is from username ignore
+		if (from == process.env.TWITTER_USERNAME.toLowerCase()) return;
 		var fullTweet;
 		if (tweet.extended_tweet && tweet.extended_tweet.full_text) {
 			fullTweet = tweet.extended_tweet.full_text;
 		} else {
 			fullTweet = tweet.text;
 		}
-		var message = fullTweet;
-		// if message is from username ignore
-		if (from == process.env.TWITTER_USERNAME.toLowerCase()) return;
-		if (message.indexOf(process.env.TWITTER_USERNAME + " ") != -1) {
-			var message = message.substr(
-				message.indexOf(process.env.TWITTER_USERNAME + " ") +
-					process.env.TWITTER_USERNAME.length +
-					1
-			);
-		}
-		if (
-			message.indexOf(process.env.TWITTER_USERNAME.toLowerCase() + " ") != -1
-		) {
-			var message = message.substr(
-				message.indexOf(process.env.TWITTER_USERNAME.toLowerCase() + " ") +
-					process.env.TWITTER_USERNAME.length +
-					1
-			);
-		}
-		var match = message.match(/^(!)(\S+)/);
+		var match = fullTweet.match(
+			new RegExp(`@${process.env.TWITTER_USERNAME} (!.*)`, "i")
+		);
 		if (match === null) {
 			// forward to notification email
+			winston.info("Forwarded message from " + from);
 			emailNotification(tweet.user.screen_name + ":\n" + fullTweet);
 			return;
 		}
-		var prefix = match[1];
-		var command = match[2];
+		var message = match[1];
+		match = message.match(/^!(\S+)/);
+		if (match === null) {
+			// forward to notification email
+			winston.info("Forwarded message from " + from);
+			emailNotification(tweet.user.screen_name + ":\n" + fullTweet);
+			return;
+		}
+		var command = match[1];
 		tweetid = tweet.id_str;
 		winston.info("New Tweet from " + from + " with TweetId: " + tweetid);
 
