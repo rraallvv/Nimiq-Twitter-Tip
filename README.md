@@ -1,6 +1,6 @@
 Nimiq-Twitter-Tip is an open-source node.js Twitter bot for tipping with altcoins. It's integrated with the Nimiq blockchain but it can be easily modified for other altcoins. 
 
-# Instalation
+# Installation
 To install Nimiq-Twitter-Tip simply clone this repo and install the dependencies:
 ```
 $ git clone https://github.com/rraallvv/Nimiq-Twitter-Tip

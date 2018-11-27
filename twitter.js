@@ -8,6 +8,17 @@ async function main() {
 	var btoa = require("btoa");
 	var nodemailer = require("nodemailer");
 
+	// load winston's cli defaults
+	winston.cli();
+
+	// check if the config file exists
+	if (!fs.existsSync("./twitter.yml")) {
+		winston.error(
+			"Configuration file doesn't exist! Please read the README.md file first."
+		);
+		process.exit(1);
+	}
+
 	// load settings
 	var settings = yaml.load(fs.readFileSync("./twitter.yml", "utf-8"));
 
@@ -159,7 +170,7 @@ async function main() {
 	function emailNotification(message) {
 		transporter.sendMail(
 			{
-				from: process.env.EMAIL_ADDRESS,
+				from: process.env.GMAIL_ADDRESS,
 				to: process.env.EMAIL_NOTIFICATION_ADDRESS,
 				subject: "Twitter Tip Bot",
 				text: message
@@ -214,17 +225,6 @@ async function main() {
 		emailNotification(dumpError(err));
 		winston.error("DB connection Error", err);
 	});
-
-	// check if the config file exists
-	if (!fs.existsSync("./twitter.yml")) {
-		winston.error(
-			"Configuration file doesn't exist! Please read the README.md file first."
-		);
-		process.exit(1);
-	}
-
-	// load winston's cli defaults
-	winston.cli();
 
 	// write logs to file
 	if (settings.log.file) {
@@ -432,8 +432,7 @@ async function main() {
 
 				// check amount is larger than minimum tip amount
 				// charge twice the miner fee and send a half with the tip for withdrawal
-				if (amount < min_tip + 2 * miner_fee) {
-					var short = min_tip + 2 * miner_fee - amount;
+				if (amount < min_tip) {
 					tweetResponse(
 						"@" +
 							from +
@@ -443,8 +442,8 @@ async function main() {
 							amountToString(amount) +
 							" $" +
 							settings.coin.short_name +
-							") is smaller that the minimum amount allowed (you are short " +
-							amountToString(short) +
+							") is smaller that the minimum amount allowed (" +
+							amountToString(min_tip) +
 							" $" +
 							settings.coin.short_name +
 							")",
@@ -645,9 +644,9 @@ async function main() {
 							winston.warn(
 								from +
 									" tried to withdraw " +
-									balance +
+									amountToString(balance) +
 									", but min is set to " +
-									min_withdraw
+									amountToString(min_withdraw)
 							);
 							return;
 						}
@@ -670,9 +669,9 @@ async function main() {
 							winston.warn(
 								from +
 									" tried to withdraw " +
-									balance +
+									amountToString(balance) +
 									", but funds don't cover the miner fee " +
-									miner_fee
+									amountToString(miner_fee)
 							);
 							return;
 						}
@@ -868,9 +867,9 @@ async function main() {
 								winston.warn(
 									from +
 										" tried to send " +
-										balance +
+										amountToString(balance) +
 										", but min is set to " +
-										min_withdraw
+										amountToString(min_withdraw)
 								);
 								return;
 							}
