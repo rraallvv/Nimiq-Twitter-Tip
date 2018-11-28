@@ -218,7 +218,7 @@ async function main() {
 	var keyv = new Keyv(
 		`mysql://${process.env.DATABASE_USER}:${encodeURI(
 			process.env.DATABASE_PASS
-		)}@${process.env.DATABASE_HOST}:3306/nimiq_tip_bot`
+		)}@${process.env.DATABASE_HOST}:3306/twitter_tip_bot`
 	);
 	// Handle DB connection errors
 	keyv.on("error", err => {
