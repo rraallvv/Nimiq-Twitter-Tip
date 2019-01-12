@@ -263,6 +263,7 @@ async function main() {
 		track: ["@" + process.env.TWITTER_USERNAME]
 	});
 	stream.on("tweet", async function(tweet) {
+		fromId = tweet.user.id_str;
 		from = tweet.user.screen_name;
 		from = from.toLowerCase();
 		// if message is from username ignore
@@ -299,7 +300,7 @@ async function main() {
 			case "balance":
 				winston.debug("Requesting balance for %s", from);
 				try {
-					var address = await getAddress(from);
+					var address = await getAddress(fromId);
 					var balance = await getBalance(
 						address,
 						settings.coin.min_confirmations
@@ -350,7 +351,7 @@ async function main() {
 			case "address":
 				winston.debug("Requesting address for %s", from);
 				try {
-					var address = await getAddress(from);
+					var address = await getAddress(fromId);
 					tweetResponse(
 						"@" + from + ", Your deposit address is " + address,
 						tweetid,
@@ -457,7 +458,7 @@ async function main() {
 				// check balance with min. confirmations
 				var fromAddress, toAddress, balance;
 				try {
-					fromAddress = await getAddress(from);
+					fromAddress = await getAddress(fromId);
 					balance = await getBalance(
 						fromAddress,
 						settings.coin.min_confirmations
@@ -610,7 +611,7 @@ async function main() {
 				}
 
 				try {
-					fromAddress = await getAddress(from);
+					fromAddress = await getAddress(fromId);
 					balance = await getBalance(
 						fromAddress,
 						settings.coin.min_confirmations
@@ -789,7 +790,7 @@ async function main() {
 				}
 
 				try {
-					fromAddress = await getAddress(from);
+					fromAddress = await getAddress(fromId);
 					balance = await getBalance(
 						fromAddress,
 						settings.coin.min_confirmations
