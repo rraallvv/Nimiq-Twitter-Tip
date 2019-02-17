@@ -479,13 +479,33 @@ async function main() {
 				try {
 					// charge twice the miner fee and send a half with the tip for withdrawal
 					if (balance >= amount + 2 * miner_fee) {
-						toAddress = await getAddress(to);
-						await jsonRpcFetch("sendTransaction", {
+
+						let toId;
+						let mentions;
+						if (tweet.extended_tweet && tweet.extended_tweet.entities && tweet.extended_tweet.entities.user_mentions) {
+							mentions = tweet.extended_tweet.entities.user_mentions;
+						} else if (tweet.entities && tweet.entities.user_mentions) {
+							mentions = tweet.entities.user_mentions;
+						}
+						if (mentions) {
+							for (var mention of mentions) {
+								if (mention.screen_name.toLowerCase() == to) {
+									toId = mention.id_str;
+									break;
+								}
+							}	
+						}
+						if (!toId) {
+							toId = to;
+						}
+						toAddress = await getAddress(toId);
+						const result = await jsonRpcFetch("sendTransaction", {
 							from: fromAddress,
 							to: toAddress,
 							value: amount + miner_fee, // send the withdrawal fee with the tip
 							fee: miner_fee
 						});
+						winston.info(`Transaction sent from ${from} to ${to} for ${amountToString(amount)} with hash ${result}`);
 						tweetResponse(
 							"@" +
 								from +
