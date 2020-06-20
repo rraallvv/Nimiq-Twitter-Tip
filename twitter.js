@@ -1,4 +1,6 @@
 async function main() {
+	require('dotenv').config();
+
 	var Twitter = require("twit");
 	var yaml = require("js-yaml");
 	var winston = require("winston");

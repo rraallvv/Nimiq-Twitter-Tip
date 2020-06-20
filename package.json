@@ -6,6 +6,8 @@
 	"dependencies": {
 		"@keyv/mysql": "^1.1.4",
 		"btoa": "^1.2.1",
+		"dotenv": "^6.2.0",
+		"express": "^4.16.4",
 		"js-yaml": "~3.2.2",
 		"keyv": "^3.1.0",
 		"nodemailer": "^4.6.8",
